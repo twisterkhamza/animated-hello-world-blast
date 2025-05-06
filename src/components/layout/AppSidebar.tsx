@@ -11,17 +11,23 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen } from 'lucide-react';
+import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 export function AppSidebar() {
   const { state, toggleDarkMode, user } = useJournal();
@@ -53,37 +59,35 @@ export function AppSidebar() {
               </SidebarMenuItem>
               
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/calendar" className="flex items-center gap-3">
-                    <Calendar size={18} />
-                    <span>Calendar View</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton className="flex items-center gap-3 w-full justify-start">
-                      <BookOpen size={18} />
-                      <span>Journal</span>
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <Notebook size={18} />
+                        <span>Journal</span>
+                      </div>
+                      <ChevronRight size={16} className="transition-transform group-data-[state=open]:rotate-90" />
                     </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 bg-popover">
-                    <DropdownMenuItem asChild>
-                      <Link to="/entry/new?type=sod" className="cursor-pointer flex items-center">
-                        <Sun size={16} className="mr-2" />
-                        <span>Morning Entry</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/entry/new?type=eod" className="cursor-pointer flex items-center">
-                        <Moon size={16} className="mr-2" />
-                        <span>Evening Entry</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="ml-7 mt-1 space-y-1">
+                    <Link to="/entry/new?type=sod" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <Sun size={15} />
+                      <span>Morning Entry</span>
+                    </Link>
+                    <Link to="/entry/new?type=eod" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <Moon size={15} />
+                      <span>Evening Entry</span>
+                    </Link>
+                    <Link to="/calendar" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <Calendar size={15} />
+                      <span>Calendar View</span>
+                    </Link>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2 w-full mt-2">
+                      <Plus size={15} />
+                      <span>New Entry</span>
+                    </Button>
+                  </CollapsibleContent>
+                </Collapsible>
               </SidebarMenuItem>
               
               <SidebarMenuItem>
@@ -95,36 +99,6 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel>Journal</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-3 py-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Plus size={16} className="mr-2" />
-                    New Journal Entry
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 bg-popover">
-                  <DropdownMenuItem asChild>
-                    <Link to="/entry/new?type=sod" className="cursor-pointer flex items-center">
-                      <Sun size={16} className="mr-2" />
-                      <span>Morning Entry</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/entry/new?type=eod" className="cursor-pointer flex items-center">
-                      <Moon size={16} className="mr-2" />
-                      <span>Evening Entry</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
@@ -149,6 +123,9 @@ export function AppSidebar() {
           </Button>
         </div>
       </SidebarFooter>
+      
+      {/* Add the SidebarRail to allow expanding a collapsed sidebar */}
+      <SidebarRail />
     </Sidebar>
   );
 }

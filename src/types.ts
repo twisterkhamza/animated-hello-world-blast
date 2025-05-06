@@ -3,8 +3,6 @@
 
 export type TemplateType = 'sod' | 'eod';
 
-export type QuestionType = 'text' | 'yesno' | 'slider' | 'dynamic_checkbox_group';
-
 export interface QuestionOption {
   id: string;
   text: string;
@@ -49,6 +47,8 @@ export interface Entry {
 export interface Tag {
   id: string;
   name: string;
+  color?: string;
+  description?: string;
 }
 
 export interface AppState {
@@ -73,4 +73,46 @@ export interface UserPreferences {
     journal: boolean;
     insights: boolean;
   };
+}
+
+// AI Coach related types
+export type QuestionType = 'text' | 'yesno' | 'slider' | 'dynamic_checkbox_group';
+
+export interface LifeArea {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  isActive: boolean;
+}
+
+export interface AIPrompt {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  lifeAreaId: string | null;
+  isActive: boolean;
+  isGlobal: boolean;
+}
+
+export interface AICoachSession {
+  id: string;
+  title: string;
+  summary: string | null;
+  lifeAreaId: string | null;
+  promptId?: string | null;
+  isActive: boolean;
+  startedAt: Date;
+  endedAt: Date | null;
+  tags: Tag[];
+}
+
+export interface AICoachInteraction {
+  id: string;
+  sessionId: string;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  tokensUsed: number | null;
+  createdAt: Date;
 }

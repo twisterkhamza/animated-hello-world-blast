@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight } from 'lucide-react';
+import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -85,6 +85,41 @@ export function AppSidebar() {
                     <Button variant="outline" size="sm" className="flex items-center gap-2 w-full mt-2">
                       <Plus size={15} />
                       <span>New Entry</span>
+                    </Button>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <Bot size={18} />
+                        <span>AI Coach</span>
+                      </div>
+                      <ChevronRight size={16} className="transition-transform group-data-[state=open]:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="ml-7 mt-1 space-y-1">
+                    <Link to="/ai-coach" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <BookOpen size={15} />
+                      <span>All Sessions</span>
+                    </Link>
+                    <Link to="/ai-coach/areas" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <Calendar size={15} />
+                      <span>Life Areas</span>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-2 w-full mt-2"
+                      asChild
+                    >
+                      <Link to="/ai-coach/new">
+                        <Plus size={15} />
+                        <span>New Session</span>
+                      </Link>
                     </Button>
                   </CollapsibleContent>
                 </Collapsible>

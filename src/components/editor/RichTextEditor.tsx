@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,33 +36,70 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [editorContent, setEditorContent] = useState(value);
   const [checkboxItems, setCheckboxItems] = useState<{ id: string; text: string; checked: boolean }[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    // Update editor content if value prop changes
+    if (value !== editorContent) {
+      setEditorContent(value);
+    }
+  }, [value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLDivElement>) => {
+  const handleChange = (e: React.FormEvent<HTMLDivElement>) => {
     const newContent = e.currentTarget.innerHTML;
     setEditorContent(newContent);
     onChange(newContent);
   };
 
-  const applyFormat = (format: string) => {
+  const applyFormat = (e: React.MouseEvent, format: string) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event bubbling
+    
+    // Make sure the editor has focus before applying format
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
+    
     document.execCommand(format, false);
     setSelectedFormat(format);
   };
 
-  const applyHeading = (level: number) => {
+  const applyHeading = (e: React.MouseEvent, level: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
+    
     document.execCommand('formatBlock', false, `h${level}`);
   };
 
-  const insertList = (ordered: boolean) => {
+  const insertList = (e: React.MouseEvent, ordered: boolean) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
+    
     document.execCommand(ordered ? 'insertOrderedList' : 'insertUnorderedList', false);
   };
   
-  const insertCheckbox = () => {
+  const insertCheckbox = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     const newItem = {
       id: `checkbox-${Date.now()}`,
       text: '',
       checked: false
     };
     setCheckboxItems([...checkboxItems, newItem]);
+    
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
     
     const checkbox = document.createElement('div');
     checkbox.innerHTML = `
@@ -82,7 +119,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
-  const insertDynamicQuestion = () => {
+  const insertDynamicQuestion = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
+    
     const questionId = `question-${Date.now()}`;
     const questionElement = document.createElement('div');
     questionElement.className = 'border rounded p-3 my-3 question-container';
@@ -102,11 +146,25 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
-  const applyFontColor = (color: string) => {
+  const applyFontColor = (e: React.MouseEvent, color: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
+    
     document.execCommand('foreColor', false, color);
   };
 
-  const applyBackgroundColor = (color: string) => {
+  const applyBackgroundColor = (e: React.MouseEvent, color: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (editorRef.current && document.activeElement !== editorRef.current) {
+      editorRef.current.focus();
+    }
+    
     document.execCommand('hiliteColor', false, color);
   };
 
@@ -129,24 +187,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => applyFormat('bold')}
+          onClick={(e) => applyFormat(e, 'bold')}
           className={selectedFormat === 'bold' ? 'bg-muted' : ''}
+          type="button" // Explicitly set type to button to prevent form submission
         >
           <Bold size={16} />
         </Button>
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => applyFormat('italic')}
+          onClick={(e) => applyFormat(e, 'italic')}
           className={selectedFormat === 'italic' ? 'bg-muted' : ''}
+          type="button"
         >
           <Italic size={16} />
         </Button>
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => applyFormat('underline')}
+          onClick={(e) => applyFormat(e, 'underline')}
           className={selectedFormat === 'underline' ? 'bg-muted' : ''}
+          type="button"
         >
           <Underline size={16} />
         </Button>
@@ -156,21 +217,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => applyHeading(1)}
+          onClick={(e) => applyHeading(e, 1)}
+          type="button"
         >
           <Heading1 size={16} />
         </Button>
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => applyHeading(2)}
+          onClick={(e) => applyHeading(e, 2)}
+          type="button"
         >
           <Heading2 size={16} />
         </Button>
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => applyHeading(3)}
+          onClick={(e) => applyHeading(e, 3)}
+          type="button"
         >
           <Heading3 size={16} />
         </Button>
@@ -180,14 +244,16 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => insertList(false)}
+          onClick={(e) => insertList(e, false)}
+          type="button"
         >
           <List size={16} />
         </Button>
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => insertList(true)}
+          onClick={(e) => insertList(e, true)}
+          type="button"
         >
           <ListOrdered size={16} />
         </Button>
@@ -197,7 +263,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={() => document.execCommand('formatBlock', false, 'blockquote')}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (editorRef.current) editorRef.current.focus();
+            document.execCommand('formatBlock', false, 'blockquote');
+          }}
+          type="button"
         >
           <Quote size={16} />
         </Button>
@@ -205,7 +277,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={insertCheckbox}
+          onClick={(e) => insertCheckbox(e)}
+          type="button"
         >
           <Square size={16} />
         </Button>
@@ -214,7 +287,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" type="button">
               <Type size={16} />
             </Button>
           </PopoverTrigger>
@@ -226,7 +299,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   variant="outline"
                   className="h-6 w-6 p-0"
                   style={{ backgroundColor: color }}
-                  onClick={() => applyFontColor(color)}
+                  onClick={(e) => applyFontColor(e, color)}
+                  type="button"
                 />
               ))}
             </div>
@@ -235,7 +309,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" type="button">
               <PaintBucket size={16} />
             </Button>
           </PopoverTrigger>
@@ -247,7 +321,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   variant="outline"
                   className="h-6 w-6 p-0"
                   style={{ backgroundColor: color }}
-                  onClick={() => applyBackgroundColor(color)}
+                  onClick={(e) => applyBackgroundColor(e, color)}
+                  type="button"
                 />
               ))}
             </div>
@@ -258,7 +333,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={insertDynamicQuestion}
+            onClick={(e) => insertDynamicQuestion(e)}
+            type="button"
           >
             Add Question
           </Button>
@@ -266,6 +342,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
       
       <div
+        ref={editorRef}
         className="p-3 min-h-[200px] focus:outline-none"
         contentEditable
         dangerouslySetInnerHTML={{ __html: editorContent }}

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +16,7 @@ export function AICoachSettings() {
   const [prompts, setPrompts] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   
   const { toast } = useToast();
   
@@ -26,6 +28,10 @@ export function AICoachSettings() {
         // Load life areas
         const areas = await fetchLifeAreas();
         setLifeAreas(areas);
+        
+        if (areas.length > 0) {
+          setSelectedAreaId(areas[0].id);
+        }
         
         // Load existing prompts
         const { data: promptsData, error: promptsError } = await supabase
@@ -57,11 +63,13 @@ export function AICoachSettings() {
     loadData();
   }, [toast]);
   
-  const handleSavePrompt = async (lifeAreaId: string) => {
+  const handleSavePrompt = async () => {
+    if (!selectedAreaId) return;
+    
     try {
-      setIsSaving(prev => ({ ...prev, [lifeAreaId]: true }));
+      setIsSaving(prev => ({ ...prev, [selectedAreaId]: true }));
       
-      const prompt = prompts[lifeAreaId] || '';
+      const prompt = prompts[selectedAreaId] || '';
       
       // Get the authenticated user
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -76,7 +84,7 @@ export function AICoachSettings() {
       const { data: existingPrompt, error: checkError } = await supabase
         .from('ai_coach_prompts')
         .select('id')
-        .eq('life_area_id', lifeAreaId)
+        .eq('life_area_id', selectedAreaId)
         .eq('is_active', true)
         .maybeSingle();
       
@@ -98,7 +106,7 @@ export function AICoachSettings() {
         const { error: insertError } = await supabase
           .from('ai_coach_prompts')
           .insert({
-            life_area_id: lifeAreaId,
+            life_area_id: selectedAreaId,
             system_prompt: prompt,
             created_by: userId,
             is_active: true
@@ -119,7 +127,13 @@ export function AICoachSettings() {
         variant: 'destructive',
       });
     } finally {
-      setIsSaving(prev => ({ ...prev, [lifeAreaId]: false }));
+      setIsSaving(prev => ({ ...prev, [selectedAreaId]: false }));
+    }
+  };
+  
+  const handlePromptChange = (value: string) => {
+    if (selectedAreaId) {
+      setPrompts(prev => ({ ...prev, [selectedAreaId]: value }));
     }
   };
   
@@ -147,34 +161,54 @@ focused on helping the user make progress.`;
           Customize the AI coach system prompts for each life area. These prompts guide the AI's behavior and responses during coaching sessions.
         </p>
         
-        <div className="space-y-6">
-          {lifeAreas.map(area => (
-            <Card key={area.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <span 
-                    className="inline-block w-5 h-5 rounded-full" 
-                    style={{ backgroundColor: area.color || 'currentColor' }}
-                  />
-                  {area.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>System Prompt Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="life-area-select">Select Life Area</Label>
+                <Select 
+                  value={selectedAreaId || ""} 
+                  onValueChange={setSelectedAreaId}
+                >
+                  <SelectTrigger id="life-area-select" className="w-full">
+                    <SelectValue placeholder="Select a life area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lifeAreas.map(area => (
+                      <SelectItem key={area.id} value={area.id}>
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="inline-block w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: area.color || 'currentColor' }}
+                          />
+                          {area.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedAreaId && (
                 <div className="space-y-2">
-                  <Label htmlFor={`prompt-${area.id}`}>System Prompt</Label>
+                  <Label htmlFor={`prompt-${selectedAreaId}`}>System Prompt</Label>
                   <Textarea
-                    id={`prompt-${area.id}`}
-                    rows={8}
-                    placeholder={getDefaultPrompt(area)}
-                    value={prompts[area.id] || ''}
-                    onChange={e => setPrompts(prev => ({ ...prev, [area.id]: e.target.value }))}
+                    id={`prompt-${selectedAreaId}`}
+                    rows={12}
+                    placeholder={getDefaultPrompt(lifeAreas.find(a => a.id === selectedAreaId)!)}
+                    value={prompts[selectedAreaId] || ''}
+                    onChange={e => handlePromptChange(e.target.value)}
+                    className="min-h-[200px]"
                   />
                   <div className="flex justify-end mt-4">
                     <Button 
-                      onClick={() => handleSavePrompt(area.id)}
-                      disabled={isSaving[area.id]}
+                      onClick={handleSavePrompt}
+                      disabled={isSaving[selectedAreaId]}
                     >
-                      {isSaving[area.id] ? (
+                      {isSaving[selectedAreaId] ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Saving...
@@ -188,18 +222,10 @@ focused on helping the user make progress.`;
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {lifeAreas.length === 0 && (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">No life areas found. Add life areas to customize AI coach prompts.</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -34,6 +34,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [customQuestions, setCustomQuestions] = useState<Question[]>([]);
   const [newQuestion, setNewQuestion] = useState<string>('');
+  const [dialogOpen, setDialogOpen] = useState(false);
   
   // If we're editing, fetch the existing entry
   useEffect(() => {
@@ -107,6 +108,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
     
     setCustomQuestions([...customQuestions, customQuestion]);
     setNewQuestion('');
+    setDialogOpen(false);
   };
   
   return (
@@ -149,8 +151,8 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
               </div>
             ))}
             
-            {/* Add custom question button */}
-            <Dialog>
+            {/* Add custom question button - only shown once at the bottom */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full mt-6" type="button">
                   <Plus className="mr-2 h-4 w-4" /> Add Custom Question
@@ -172,12 +174,12 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline" type="button">Cancel</Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button onClick={handleAddCustomQuestion} type="button">Add Question</Button>
-                  </DialogClose>
+                  <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddCustomQuestion} type="button">
+                    Add Question
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

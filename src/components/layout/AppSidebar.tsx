@@ -12,11 +12,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarTrigger
+  SidebarTrigger,
+  useSidebar
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot, Menu } from 'lucide-react';
+import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot, Menu, PanelLeft, PanelRight } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -26,6 +27,7 @@ import { useState } from 'react';
 
 export function AppSidebar() {
   const { state, toggleDarkMode, user } = useJournal();
+  const { open, toggleSidebar } = useSidebar();
 
   return (
     <Sidebar>
@@ -83,12 +85,10 @@ export function AppSidebar() {
                       <Calendar size={15} />
                       <span>Calendar View</span>
                     </Link>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2 w-full mt-2" asChild>
-                      <Link to="/entry/new?type=sod">
-                        <Plus size={15} />
-                        <span>New Entry</span>
-                      </Link>
-                    </Button>
+                    <Link to="/entry/new" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <Plus size={15} />
+                      <span>New Entry</span>
+                    </Link>
                   </CollapsibleContent>
                 </Collapsible>
               </SidebarMenuItem>
@@ -113,17 +113,10 @@ export function AppSidebar() {
                       <Calendar size={15} />
                       <span>Life Areas</span>
                     </Link>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-2 w-full mt-2"
-                      asChild
-                    >
-                      <Link to="/ai-coach/new">
-                        <Plus size={15} />
-                        <span>New Session</span>
-                      </Link>
-                    </Button>
+                    <Link to="/ai-coach/new" className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                      <Plus size={15} />
+                      <span>New Session</span>
+                    </Link>
                   </CollapsibleContent>
                 </Collapsible>
               </SidebarMenuItem>
@@ -163,6 +156,21 @@ export function AppSidebar() {
       </SidebarFooter>
       
       <SidebarRail />
+      
+      {/* Fixed slide-out toggle button */}
+      <div 
+        className={`fixed top-20 left-0 z-50 transition-transform duration-300 ${open ? 'translate-x-[260px]' : 'translate-x-0'}`}
+      >
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          className="shadow-md" 
+          onClick={toggleSidebar}
+          aria-label={open ? "Close sidebar" : "Open sidebar"}
+        >
+          {open ? <PanelLeft size={16} /> : <PanelRight size={16} />}
+        </Button>
+      </div>
     </Sidebar>
   );
 }

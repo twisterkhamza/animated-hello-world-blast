@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "https://esm.sh/openai@4.20.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,11 +16,11 @@ serve(async (req) => {
 
   try {
     // Extract request body
-    const { messages, systemPrompt } = await req.json();
+    const { messages, sessionId, systemPrompt: customSystemPrompt } = await req.json();
     
     // Check if required data is provided
-    if (!messages || !Array.isArray(messages)) {
-      throw new Error("Messages array is required");
+    if (!messages || !Array.isArray(messages) || !sessionId) {
+      throw new Error("Messages array and sessionId are required");
     }
 
     // Retrieve OpenAI API key from environment variables
@@ -32,19 +33,68 @@ serve(async (req) => {
       apiKey: apiKey,
     });
 
+    // Create a Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Supabase credentials not configured");
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Get session details to determine life area and system prompt
+    const { data: sessionData, error: sessionError } = await supabase
+      .from("ai_coach_sessions")
+      .select("life_area_id")
+      .eq("id", sessionId)
+      .single();
+    
+    if (sessionError) throw sessionError;
+    
+    // Get system prompt for this life area
+    const { data: promptData, error: promptError } = await supabase
+      .from("ai_coach_prompts")
+      .select("system_prompt")
+      .eq("life_area_id", sessionData.life_area_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    
+    if (promptError) throw promptError;
+    
+    // Fetch previous messages for context
+    const { data: previousMessages, error: messagesError } = await supabase
+      .from("ai_coach_messages")
+      .select("role, content")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true });
+    
+    if (messagesError) throw messagesError;
+
     // Prepare messages for the chat completion
     const formattedMessages = [];
     
-    // Add system prompt if provided
-    if (systemPrompt) {
-      formattedMessages.push({
-        role: "system", 
-        content: systemPrompt
-      });
+    // Add system prompt if provided or found
+    let systemPrompt = "You are an AI coach that helps users improve their lives through thoughtful conversation and guidance.";
+    
+    if (customSystemPrompt) {
+      systemPrompt = customSystemPrompt;
+    } else if (promptData?.system_prompt) {
+      systemPrompt = promptData.system_prompt;
     }
     
-    // Add user messages
-    formattedMessages.push(...messages);
+    formattedMessages.push({
+      role: "system", 
+      content: systemPrompt
+    });
+    
+    // Add previous conversation messages for context
+    if (previousMessages && previousMessages.length > 0) {
+      formattedMessages.push(...previousMessages);
+    } else {
+      // Add user messages
+      formattedMessages.push(...messages);
+    }
 
     // Call OpenAI Chat Completion API
     const completion = await openai.chat.completions.create({

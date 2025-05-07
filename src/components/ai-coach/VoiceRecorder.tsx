@@ -1,13 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import { Mic, Square, Pause, Play, Loader2 } from 'lucide-react';
 
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string) => void;
   onTranscriptionError: (error: Error) => void;
-  transcribeFunction: (audioBlob: Blob) => Promise<string>;
+  transcribeFunction: (audioBase64: string) => Promise<string>;
 }
 
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
@@ -16,83 +15,149 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   transcribeFunction
 }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Clean up on unmount
   useEffect(() => {
-    // Clean up timer on unmount
     return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, []);
   
   const startRecording = async () => {
     try {
+      audioChunksRef.current = [];
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       
       mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
       
-      mediaRecorder.ondataavailable = (e) => {
-        audioChunksRef.current.push(e.data);
-      };
-      
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
-        try {
-          setIsTranscribing(true);
-          const text = await transcribeFunction(audioBlob);
-          onTranscriptionComplete(text);
-        } catch (error) {
-          console.error('Transcription error:', error);
-          onTranscriptionError(error instanceof Error ? error : new Error('Transcription failed'));
-        } finally {
-          setIsTranscribing(false);
-          
-          // Stop all tracks to release the microphone
-          stream.getTracks().forEach(track => track.stop());
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
       };
       
       mediaRecorder.start();
       setIsRecording(true);
+      setIsPaused(false);
       setRecordingTime(0);
       
       // Start timer
-      timerRef.current = window.setInterval(() => {
-        setRecordingTime(prevTime => prevTime + 1);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
       }, 1000);
       
     } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast({
-        title: 'Microphone Access Error',
-        description: 'Please allow microphone access to use voice recording.',
-        variant: 'destructive',
-      });
+      console.error('Error starting recording:', error);
+      onTranscriptionError(new Error('Could not start recording. Please check microphone permissions.'));
     }
   };
   
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
       
-      // Clear timer
+      // Pause timer
       if (timerRef.current) {
-        window.clearInterval(timerRef.current);
+        clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
   };
   
-  const formatTime = (seconds: number) => {
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+      
+      // Resume timer
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    }
+  };
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      
+      // Stop timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      mediaRecorderRef.current.onstop = async () => {
+        try {
+          setIsTranscribing(true);
+          
+          // Stop all audio tracks
+          mediaRecorderRef.current?.stream?.getTracks().forEach(track => track.stop());
+          
+          // Combine audio chunks
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          
+          // Convert blob to base64
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          
+          reader.onloadend = async () => {
+            try {
+              const base64Audio = reader.result?.toString().split(',')[1];
+              
+              if (base64Audio) {
+                // Send for transcription
+                const transcribedText = await transcribeFunction(base64Audio);
+                onTranscriptionComplete(transcribedText);
+              } else {
+                throw new Error('Error converting audio to base64');
+              }
+            } catch (error) {
+              console.error('Transcription error:', error);
+              onTranscriptionError(error instanceof Error ? error : new Error('Unknown transcription error'));
+            } finally {
+              setIsRecording(false);
+              setIsPaused(false);
+              setIsTranscribing(false);
+            }
+          };
+          
+          reader.onerror = () => {
+            console.error('Error reading audio file');
+            onTranscriptionError(new Error('Error reading audio file'));
+            setIsRecording(false);
+            setIsPaused(false);
+            setIsTranscribing(false);
+          };
+          
+        } catch (error) {
+          console.error('Error processing recording:', error);
+          onTranscriptionError(error instanceof Error ? error : new Error('Error processing recording'));
+          setIsRecording(false);
+          setIsPaused(false);
+          setIsTranscribing(false);
+        }
+      };
+    }
+  };
+  
+  // Format seconds to mm:ss
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -100,37 +165,59 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   
   return (
     <div className="flex items-center gap-2">
-      {isRecording ? (
-        <>
-          <div className="text-sm font-medium flex items-center gap-2 text-destructive animate-pulse">
-            <span className="h-2 w-2 rounded-full bg-destructive"></span>
-            {formatTime(recordingTime)}
-          </div>
-          <Button 
-            variant="destructive"
-            size="sm"
-            onClick={stopRecording}
-            aria-label="Stop recording"
-          >
-            <Square size={14} className="mr-1" />
-            Stop
-          </Button>
-        </>
-      ) : (
+      {!isRecording ? (
         <Button
-          variant="outline"
+          variant="secondary"
           size="icon"
           onClick={startRecording}
           disabled={isTranscribing}
-          aria-label="Start voice recording"
-          className={isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}
+          aria-label="Start recording"
         >
-          {isTranscribing ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <Mic size={16} />
-          )}
+          <Mic className="h-4 w-4" />
         </Button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <div className="text-xs font-medium flex items-center">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-2 animate-pulse"></span>
+            <span>{formatTime(recordingTime)}</span>
+          </div>
+          
+          {isPaused ? (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={resumeRecording}
+              aria-label="Resume recording"
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={pauseRecording}
+              aria-label="Pause recording"
+            >
+              <Pause className="h-4 w-4" />
+            </Button>
+          )}
+          
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={stopRecording}
+            aria-label="Stop recording"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      
+      {isTranscribing && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Transcribing...</span>
+        </div>
       )}
     </div>
   );

@@ -16,13 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot, PanelLeftClose, Menu } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
+import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot, Menu } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -32,10 +26,9 @@ import { useState } from 'react';
 
 export function AppSidebar() {
   const { state, toggleDarkMode, user } = useJournal();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <Sidebar defaultCollapsed={false}>
+    <Sidebar>
       <SidebarHeader className="border-b px-6 py-5">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
@@ -174,3 +167,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+

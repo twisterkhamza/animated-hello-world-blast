@@ -21,14 +21,15 @@ export const fetchLifeAreas = async (): Promise<LifeArea[]> => {
     description: item.description,
     color: item.color,
     icon: item.icon,
-    isActive: item.is_active
+    isActive: item.is_active,
+    userId: item.user_id
   }));
 };
 
 export const createLifeArea = async (lifeArea: Omit<LifeArea, 'id'>): Promise<LifeArea> => {
-  const { user } = await supabase.auth.getUser();
-  if (!user) throw new Error('User not authenticated');
-
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session?.user) throw new Error('User not authenticated');
+  
   // Convert camelCase to snake_case for Supabase
   const dbLifeArea = {
     name: lifeArea.name,
@@ -36,7 +37,7 @@ export const createLifeArea = async (lifeArea: Omit<LifeArea, 'id'>): Promise<Li
     color: lifeArea.color,
     icon: lifeArea.icon,
     is_active: lifeArea.isActive,
-    user_id: user.id
+    user_id: sessionData.session.user.id
   };
   
   const { data, error } = await supabase
@@ -107,8 +108,8 @@ export const deleteLifeArea = async (id: string): Promise<void> => {
 
 // AI Coach Sessions
 export const createSession = async (session: Omit<AICoachSession, 'id' | 'startedAt' | 'endedAt' | 'tags'>): Promise<AICoachSession> => {
-  const { user } = await supabase.auth.getUser();
-  if (!user) throw new Error('User not authenticated');
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session?.user) throw new Error('User not authenticated');
   
   // Convert camelCase to snake_case for Supabase
   const dbSession = {
@@ -117,7 +118,7 @@ export const createSession = async (session: Omit<AICoachSession, 'id' | 'starte
     life_area_id: session.lifeAreaId,
     prompt_id: session.promptId,
     is_active: session.isActive,
-    user_id: user.id,
+    user_id: sessionData.session.user.id,
   };
   
   const { data, error } = await supabase

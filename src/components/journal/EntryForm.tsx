@@ -5,11 +5,14 @@ import { Template, Question, Category, Rating, TemplateType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useNavigate } from 'react-router-dom';
+import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DialogClose } from '@/components/ui/dialog';
 
 interface EntryFormProps {
   type: TemplateType;
@@ -29,6 +32,8 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
   // State for form values
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [customQuestions, setCustomQuestions] = useState<Question[]>([]);
+  const [newQuestion, setNewQuestion] = useState<string>('');
   
   // If we're editing, fetch the existing entry
   useEffect(() => {
@@ -51,7 +56,8 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: {
-        text: template.questions.find(q => q.id === questionId)?.text || '',
+        text: template.questions.find(q => q.id === questionId)?.text || 
+              customQuestions.find(q => q.id === questionId)?.text || '',
         value
       }
     }));
@@ -82,11 +88,25 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
         toast.success('New journal entry created');
       }
       
-      navigate('/');
+      navigate('/dashboard');
     } catch (error) {
       toast.error('There was an error saving your entry');
       console.error('Error saving entry:', error);
     }
+  };
+
+  const handleAddCustomQuestion = () => {
+    if (!newQuestion.trim()) return;
+    
+    const customQuestion: Question = {
+      id: `custom-${Date.now()}`,
+      text: newQuestion,
+      type: 'text',
+      order: template.questions.length + customQuestions.length + 1,
+    };
+    
+    setCustomQuestions([...customQuestions, customQuestion]);
+    setNewQuestion('');
   };
   
   return (
@@ -105,28 +125,62 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {/* Template questions */}
             {template.questions.map((question) => (
               <div key={question.id} className="space-y-2">
                 <Label htmlFor={question.id}>{question.text}</Label>
-                
-                {question.type === 'text' ? (
-                  <Textarea
-                    id={question.id}
-                    value={answers[question.id]?.value || ''}
-                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    placeholder="Type your answer here..."
-                    className="min-h-[100px]"
-                  />
-                ) : (
-                  <Input
-                    id={question.id}
-                    value={answers[question.id]?.value || ''}
-                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    placeholder="Type your answer here..."
-                  />
-                )}
+                <RichTextEditor
+                  value={answers[question.id]?.value || ''}
+                  onChange={(value) => handleAnswerChange(question.id, value)}
+                  placeholder="Type your answer here..."
+                />
               </div>
             ))}
+            
+            {/* Custom questions */}
+            {customQuestions.map((question) => (
+              <div key={question.id} className="space-y-2">
+                <Label htmlFor={question.id}>{question.text}</Label>
+                <RichTextEditor
+                  value={answers[question.id]?.value || ''}
+                  onChange={(value) => handleAnswerChange(question.id, value)}
+                  placeholder="Type your answer here..."
+                />
+              </div>
+            ))}
+            
+            {/* Add custom question button */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full mt-6" type="button">
+                  <Plus className="mr-2 h-4 w-4" /> Add Custom Question
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Custom Question</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-question">Question</Label>
+                    <Input
+                      id="custom-question"
+                      placeholder="Enter your question"
+                      value={newQuestion}
+                      onChange={(e) => setNewQuestion(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">Cancel</Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button onClick={handleAddCustomQuestion} type="button">Add Question</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
         
@@ -162,7 +216,7 @@ export const EntryForm: React.FC<EntryFormProps> = ({ type, entryId }) => {
         )}
         
         <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/')}>
+          <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
             Cancel
           </Button>
           <Button type="submit">

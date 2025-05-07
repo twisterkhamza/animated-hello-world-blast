@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot } from 'lucide-react';
+import { Calendar, Home, Plus, Settings, Sun, Moon, BookOpen, Notebook, ChevronRight, Bot, PanelLeftClose, Menu } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,20 +28,28 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { useState } from 'react';
 
 export function AppSidebar() {
   const { state, toggleDarkMode, user } = useJournal();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <Sidebar>
+    <Sidebar defaultCollapsed={false}>
       <SidebarHeader className="border-b px-6 py-5">
-        <div className="flex items-center gap-2">
-          <div className="rounded-full bg-journal-purple w-8 h-8 flex items-center justify-center">
-            <span className="text-white font-semibold">ES</span>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-journal-purple w-8 h-8 flex items-center justify-center">
+              <span className="text-white font-semibold">ES</span>
+            </div>
+            <span className="font-semibold text-lg">Echo of Self</span>
           </div>
-          <span className="font-semibold text-lg">Echo of Self</span>
+          <SidebarTrigger>
+            <Button variant="ghost" size="icon">
+              <Menu size={18} />
+            </Button>
+          </SidebarTrigger>
         </div>
-        <SidebarTrigger />
       </SidebarHeader>
       
       <SidebarContent>
@@ -82,9 +90,11 @@ export function AppSidebar() {
                       <Calendar size={15} />
                       <span>Calendar View</span>
                     </Link>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2 w-full mt-2">
-                      <Plus size={15} />
-                      <span>New Entry</span>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2 w-full mt-2" asChild>
+                      <Link to="/entry/new?type=sod">
+                        <Plus size={15} />
+                        <span>New Entry</span>
+                      </Link>
                     </Button>
                   </CollapsibleContent>
                 </Collapsible>

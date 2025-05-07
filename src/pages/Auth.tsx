@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Chrome } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/components/ui/sonner';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -33,6 +34,7 @@ const Auth = () => {
     try {
       setIsSubmitting(true);
       await signIn(email, password);
+      toast.success('Successfully signed in');
       navigate('/dashboard');
     } catch (error) {
       console.error('Sign in error:', error);
@@ -49,6 +51,7 @@ const Auth = () => {
         firstName,
         lastName,
       });
+      toast.success('Account created! Please check your email to verify your account');
       // Don't navigate immediately as user needs to verify email
     } catch (error) {
       console.error('Sign up error:', error);
@@ -61,8 +64,10 @@ const Auth = () => {
     try {
       await signInWithGoogle();
       // Redirection will be handled by the OAuth flow
+      toast.success('Redirecting to Google authentication...');
     } catch (error) {
       console.error('Google sign in error:', error);
+      toast.error('Google sign in failed. Please try again.');
     }
   };
 

@@ -1,219 +1,136 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useJournal } from '@/contexts/JournalContext';
 import { JournalCard } from '@/components/journal/JournalCard';
+import { JournalTimeline } from '@/components/journal/JournalTimeline';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from '@/components/ui/sonner';
-import { Calendar, Plus } from 'lucide-react';
-import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Sun, Moon, AlertCircle, Trash2 } from 'lucide-react';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const Dashboard = () => {
-  const { state, deleteEntry, user } = useJournal();
+  const { state, deleteEntry } = useJournal();
   const navigate = useNavigate();
-  
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('timeline');
   
-  // Get today's date
-  const today = new Date();
-  const dateString = format(today, 'EEEE, MMMM d, yyyy');
-  
-  // Group entries by date (YYYY-MM-DD)
-  const entriesByDate = state.entries.reduce<Record<string, typeof state.entries>>((acc, entry) => {
-    const dateKey = format(entry.timestamp, 'yyyy-MM-dd');
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(entry);
-    return acc;
-  }, {});
-  
-  // Sort dates in descending order
-  const sortedDates = Object.keys(entriesByDate).sort((a, b) => {
-    return new Date(b).getTime() - new Date(a).getTime();
-  });
+  const handleNewEntry = (type: 'sod' | 'eod') => {
+    navigate(`/entry/new?type=${type}`);
+  };
   
   const handleEditEntry = (id: string) => {
     navigate(`/entry/edit/${id}`);
   };
   
-  const handleDeleteEntry = (id: string) => {
+  const confirmDelete = (id: string) => {
     setEntryToDelete(id);
-    setIsDeleteDialogOpen(true);
   };
   
-  const confirmDeleteEntry = () => {
+  const handleDeleteEntry = () => {
     if (entryToDelete) {
       deleteEntry(entryToDelete);
-      toast.success('Journal entry deleted');
-      setIsDeleteDialogOpen(false);
       setEntryToDelete(null);
     }
   };
   
+  const sortedEntries = [...state.entries].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+  
   return (
-    <div className="animate-fade-in">
-      <div className="flex flex-col md:flex-row justify-between md:items-center mb-8">
+    <div className="animate-fade-in pb-12">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
-            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}
-          </h1>
-          <p className="text-muted-foreground mt-1">{dateString}</p>
+          <h1 className="text-3xl font-bold mb-1">Your Journal</h1>
+          <p className="text-muted-foreground">
+            Record your daily reflections and track your well-being
+          </p>
         </div>
         
-        <div className="flex space-x-4 mt-4 md:mt-0">
-          <Link to="/entry/new?type=sod">
-            <Button className="flex items-center">
-              <Plus size={16} className="mr-2" />
-              Morning Entry
-            </Button>
-          </Link>
-          <Link to="/entry/new?type=eod">
-            <Button variant="outline" className="flex items-center">
-              <Plus size={16} className="mr-2" />
-              Evening Entry
-            </Button>
-          </Link>
+        <div className="flex gap-3">
+          <Button onClick={() => handleNewEntry('sod')} variant="outline" className="flex-1 md:flex-none">
+            <Sun className="mr-2 h-4 w-4" />
+            Morning Entry
+          </Button>
+          <Button onClick={() => handleNewEntry('eod')} className="flex-1 md:flex-none">
+            <Moon className="mr-2 h-4 w-4" />
+            Evening Entry
+          </Button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Journal Entries</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{state.entries.length}</p>
-            <p className="text-muted-foreground text-sm">Total entries</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{state.categories.length}</p>
-            <p className="text-muted-foreground text-sm">Rating categories</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Calendar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link to="/calendar" className="flex items-center text-primary">
-              <Calendar size={18} className="mr-2" />
-              <span className="hover:underline">View monthly calendar</span>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Tabs defaultValue="all" className="mb-6">
+      <Tabs defaultValue="timeline" className="mb-8">
         <TabsList>
-          <TabsTrigger value="all">All Entries</TabsTrigger>
-          <TabsTrigger value="morning">Morning</TabsTrigger>
-          <TabsTrigger value="evening">Evening</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="cards">Card View</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="all" className="mt-6">
-          {sortedDates.length > 0 ? (
-            sortedDates.map(dateKey => (
-              <div key={dateKey} className="mb-8">
-                <h2 className="text-lg font-medium mb-4 text-muted-foreground">
-                  {format(new Date(dateKey), 'MMMM d, yyyy')}
-                </h2>
-                {entriesByDate[dateKey].map(entry => (
-                  <JournalCard
-                    key={entry.id}
-                    entry={entry}
-                    onEdit={handleEditEntry}
-                    onDelete={handleDeleteEntry}
-                  />
-                ))}
+        <TabsContent value="timeline" className="mt-4">
+          <JournalTimeline 
+            entries={sortedEntries}
+            onEdit={handleEditEntry}
+            onDelete={confirmDelete}
+          />
+        </TabsContent>
+        
+        <TabsContent value="cards" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {sortedEntries.map(entry => (
+              <JournalCard 
+                key={entry.id} 
+                entry={entry}
+                onEdit={handleEditEntry}
+                onDelete={confirmDelete}
+              />
+            ))}
+            
+            {sortedEntries.length === 0 && (
+              <div className="col-span-2 text-center py-12">
+                <p className="text-muted-foreground">No journal entries yet. Start your journaling journey today!</p>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No journal entries yet. Create your first entry!</p>
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="morning" className="mt-6">
-          {sortedDates.some(dateKey => entriesByDate[dateKey].some(entry => entry.templateId === '1')) ? (
-            sortedDates.map(dateKey => {
-              const morningEntries = entriesByDate[dateKey].filter(entry => entry.templateId === '1');
-              if (morningEntries.length === 0) return null;
-              
-              return (
-                <div key={dateKey} className="mb-8">
-                  <h2 className="text-lg font-medium mb-4 text-muted-foreground">
-                    {format(new Date(dateKey), 'MMMM d, yyyy')}
-                  </h2>
-                  {morningEntries.map(entry => (
-                    <JournalCard
-                      key={entry.id}
-                      entry={entry}
-                      onEdit={handleEditEntry}
-                      onDelete={handleDeleteEntry}
-                    />
-                  ))}
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No morning entries yet.</p>
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="evening" className="mt-6">
-          {sortedDates.some(dateKey => entriesByDate[dateKey].some(entry => entry.templateId === '2')) ? (
-            sortedDates.map(dateKey => {
-              const eveningEntries = entriesByDate[dateKey].filter(entry => entry.templateId === '2');
-              if (eveningEntries.length === 0) return null;
-              
-              return (
-                <div key={dateKey} className="mb-8">
-                  <h2 className="text-lg font-medium mb-4 text-muted-foreground">
-                    {format(new Date(dateKey), 'MMMM d, yyyy')}
-                  </h2>
-                  {eveningEntries.map(entry => (
-                    <JournalCard
-                      key={entry.id}
-                      entry={entry}
-                      onEdit={handleEditEntry}
-                      onDelete={handleDeleteEntry}
-                    />
-                  ))}
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No evening entries yet.</p>
-            </div>
-          )}
+            )}
+          </div>
         </TabsContent>
       </Tabs>
       
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      {/* Show tip only if there are no entries */}
+      {sortedEntries.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Getting Started</AlertTitle>
+          <AlertDescription>
+            Try creating a morning entry to set intentions for your day, or an evening entry to reflect on your experiences.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!entryToDelete} onOpenChange={(open) => !open && setEntryToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this journal entry. This action cannot be undone.
+              This action cannot be undone. This will permanently delete your journal entry.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteEntry}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteEntry} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

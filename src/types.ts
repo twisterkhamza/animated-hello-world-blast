@@ -85,6 +85,7 @@ export interface LifeArea {
   color: string | null;
   icon: string | null;
   isActive: boolean;
+  userId?: string; // Added for Supabase compatibility
 }
 
 export interface AIPrompt {
@@ -94,6 +95,7 @@ export interface AIPrompt {
   lifeAreaId: string | null;
   isActive: boolean;
   isGlobal: boolean;
+  userId?: string;
 }
 
 export interface AICoachSession {
@@ -106,6 +108,7 @@ export interface AICoachSession {
   startedAt: Date;
   endedAt: Date | null;
   tags: Tag[];
+  userId?: string;
 }
 
 export interface AICoachInteraction {

@@ -14,28 +14,6 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColorInput } from '@/components/ui/color-input';
 
-// ColorInput component for color selection
-const ColorInput = ({ value, onChange }: { value: string, onChange: (value: string) => void }) => {
-  return (
-    <div className="flex gap-2 items-center">
-      <div
-        className="w-8 h-8 rounded border cursor-pointer"
-        style={{ backgroundColor: value || '#e2e8f0' }}
-        onClick={() => {
-          const newColor = prompt('Enter color hex code (e.g. #4CAF50):', value);
-          if (newColor) onChange(newColor);
-        }}
-      />
-      <Input
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="#000000"
-        className="flex-1"
-      />
-    </div>
-  );
-};
-
 export default function LifeAreas() {
   const navigate = useNavigate();
   const [lifeAreas, setLifeAreas] = useState<LifeArea[]>([]);
@@ -111,7 +89,7 @@ export default function LifeAreas() {
         description,
         color,
         icon,
-        is_active: true,
+        isActive: true,
       };
       
       let savedArea;

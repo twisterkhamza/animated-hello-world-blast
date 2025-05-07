@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { LifeArea, AIPrompt, AICoachSession, AICoachInteraction } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 // Life Areas
 export const fetchLifeAreas = async (): Promise<LifeArea[]> => {
@@ -14,13 +15,33 @@ export const fetchLifeAreas = async (): Promise<LifeArea[]> => {
     throw error;
   }
   
-  return data || [];
+  return (data || []).map(item => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    color: item.color,
+    icon: item.icon,
+    isActive: item.is_active
+  }));
 };
 
 export const createLifeArea = async (lifeArea: Omit<LifeArea, 'id'>): Promise<LifeArea> => {
+  const { user } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  // Convert camelCase to snake_case for Supabase
+  const dbLifeArea = {
+    name: lifeArea.name,
+    description: lifeArea.description,
+    color: lifeArea.color,
+    icon: lifeArea.icon,
+    is_active: lifeArea.isActive,
+    user_id: user.id
+  };
+  
   const { data, error } = await supabase
     .from('life_areas')
-    .insert([lifeArea])
+    .insert([dbLifeArea])
     .select()
     .single();
   
@@ -29,13 +50,29 @@ export const createLifeArea = async (lifeArea: Omit<LifeArea, 'id'>): Promise<Li
     throw error;
   }
   
-  return data;
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    color: data.color,
+    icon: data.icon,
+    isActive: data.is_active,
+    userId: data.user_id
+  };
 };
 
 export const updateLifeArea = async (id: string, updates: Partial<LifeArea>): Promise<LifeArea> => {
+  // Convert camelCase to snake_case for Supabase
+  const dbUpdates: any = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.color !== undefined) dbUpdates.color = updates.color;
+  if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+  if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+  
   const { data, error } = await supabase
     .from('life_areas')
-    .update(updates)
+    .update(dbUpdates)
     .eq('id', id)
     .select()
     .single();
@@ -45,7 +82,15 @@ export const updateLifeArea = async (id: string, updates: Partial<LifeArea>): Pr
     throw error;
   }
   
-  return data;
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    color: data.color,
+    icon: data.icon,
+    isActive: data.is_active,
+    userId: data.user_id
+  };
 };
 
 export const deleteLifeArea = async (id: string): Promise<void> => {
@@ -62,9 +107,22 @@ export const deleteLifeArea = async (id: string): Promise<void> => {
 
 // AI Coach Sessions
 export const createSession = async (session: Omit<AICoachSession, 'id' | 'startedAt' | 'endedAt' | 'tags'>): Promise<AICoachSession> => {
+  const { user } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+  
+  // Convert camelCase to snake_case for Supabase
+  const dbSession = {
+    title: session.title,
+    summary: session.summary,
+    life_area_id: session.lifeAreaId,
+    prompt_id: session.promptId,
+    is_active: session.isActive,
+    user_id: user.id,
+  };
+  
   const { data, error } = await supabase
     .from('ai_coach_sessions')
-    .insert([session])
+    .insert([dbSession])
     .select()
     .single();
   
@@ -74,10 +132,16 @@ export const createSession = async (session: Omit<AICoachSession, 'id' | 'starte
   }
   
   return {
-    ...data,
+    id: data.id,
+    title: data.title,
+    summary: data.summary,
+    lifeAreaId: data.life_area_id,
+    promptId: data.prompt_id,
+    isActive: data.is_active,
     startedAt: new Date(data.started_at),
     endedAt: data.ended_at ? new Date(data.ended_at) : null,
     tags: [],
+    userId: data.user_id
   };
 };
 
@@ -108,14 +172,23 @@ export const fetchSessions = async (): Promise<AICoachSession[]> => {
     startedAt: new Date(session.started_at),
     endedAt: session.ended_at ? new Date(session.ended_at) : null,
     tags: session.tags?.map((t: any) => t.tag) || [],
+    userId: session.user_id
   }));
 };
 
 // AI Coach Interactions
 export const createInteraction = async (interaction: Omit<AICoachInteraction, 'id' | 'createdAt'>): Promise<AICoachInteraction> => {
+  // Convert camelCase to snake_case for Supabase
+  const dbInteraction = {
+    session_id: interaction.sessionId,
+    role: interaction.role,
+    content: interaction.content,
+    tokens_used: interaction.tokensUsed
+  };
+  
   const { data, error } = await supabase
     .from('ai_coach_interactions')
-    .insert([interaction])
+    .insert([dbInteraction])
     .select()
     .single();
   
@@ -125,7 +198,11 @@ export const createInteraction = async (interaction: Omit<AICoachInteraction, 'i
   }
   
   return {
-    ...data,
+    id: data.id,
+    sessionId: data.session_id,
+    role: data.role as 'system' | 'user' | 'assistant',
+    content: data.content,
+    tokensUsed: data.tokens_used,
     createdAt: new Date(data.created_at),
   };
 };

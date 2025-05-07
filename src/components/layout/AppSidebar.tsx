@@ -52,7 +52,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/" className="flex items-center gap-3">
+                  <Link to="/dashboard" className="flex items-center gap-3">
                     <Home size={18} />
                     <span>Dashboard</span>
                   </Link>
@@ -162,7 +162,6 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
       
-      {/* Add the SidebarRail to allow expanding a collapsed sidebar */}
       <SidebarRail />
     </Sidebar>
   );

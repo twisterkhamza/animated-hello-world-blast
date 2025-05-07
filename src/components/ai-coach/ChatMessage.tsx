@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AICoachMessage } from '@/types';
 import { Bot } from 'lucide-react';
@@ -16,6 +15,22 @@ interface ChatMessageProps {
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message, user }) => {
   const isUser = message.role === 'user';
+  
+  // Process message content to ensure proper rendering
+  const processContent = (content: string) => {
+    // If the content contains HTML tags, render it as HTML
+    if (content.includes('<div>') || content.includes('<br>')) {
+      return <div dangerouslySetInnerHTML={{ __html: content }} />;
+    }
+    
+    // Otherwise render as plain text with preserved line breaks
+    return content.split('\n').map((line, i) => (
+      <React.Fragment key={i}>
+        {line}
+        {i !== content.split('\n').length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
   
   return (
     <div className={cn(
@@ -40,7 +55,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, user }) => {
         'max-w-[80%] rounded-xl px-4 py-3',
         isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
       )}>
-        <div className="text-sm">{message.content}</div>
+        <div className="text-sm whitespace-pre-wrap">
+          {processContent(message.content)}
+        </div>
         <div className={cn(
           'text-xs mt-1',
           isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'

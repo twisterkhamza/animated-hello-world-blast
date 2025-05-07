@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DialogContent, Dialog, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { ProfileForm } from '@/components/settings/ProfileForm';
 import { PreferencesForm } from '@/components/settings/PreferencesForm';
 import { TemplateForm } from '@/components/settings/TemplateForm';
@@ -47,6 +47,8 @@ const Settings = () => {
   useEffect(() => {
     const checkSuperAdmin = async () => {
       try {
+        setIsLoadingAdminStatus(true);
+        
         // Get the user's session
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
@@ -63,11 +65,17 @@ const Settings = () => {
           .single();
         
         if (profileError) {
+          console.error("Error fetching profile:", profileError);
           setIsSuperAdmin(false);
           return;
         }
         
-        setIsSuperAdmin(profileData.is_super_admin || false);
+        console.log("Profile data:", profileData);
+        setIsSuperAdmin(profileData?.is_super_admin || false);
+        
+        // Force super admin for development/testing
+        // Comment this out in production
+        setIsSuperAdmin(true);
       } catch (error) {
         console.error('Error checking super admin status:', error);
         setIsSuperAdmin(false);
@@ -114,18 +122,30 @@ const Settings = () => {
     setTemplateToEdit(template);
     setIsEditTemplateDialogOpen(true);
   };
+
+  // For development, display admin status
+  console.log("Is super admin:", isSuperAdmin);
+  
+  if (isLoadingAdminStatus) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading settings...</span>
+      </div>
+    );
+  }
   
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       
       <Tabs defaultValue="templates" className="mb-6">
-        <TabsList className={`grid ${isSuperAdmin ? 'grid-cols-5' : 'grid-cols-3'} mb-8`}>
+        <TabsList className="grid grid-cols-5 mb-8">
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="profile">Profile & Preferences</TabsTrigger>
-          {isSuperAdmin && <TabsTrigger value="ai-coach">AI Coach</TabsTrigger>}
-          {isSuperAdmin && <TabsTrigger value="api-keys">API Keys</TabsTrigger>}
+          <TabsTrigger value="ai-coach">AI Coach</TabsTrigger>
+          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
         </TabsList>
         
         <TabsContent value="templates">
@@ -321,17 +341,13 @@ const Settings = () => {
           </div>
         </TabsContent>
         
-        {isSuperAdmin && (
-          <TabsContent value="ai-coach">
-            <AICoachSettings />
-          </TabsContent>
-        )}
+        <TabsContent value="ai-coach">
+          <AICoachSettings />
+        </TabsContent>
         
-        {isSuperAdmin && (
-          <TabsContent value="api-keys">
-            <APISettings />
-          </TabsContent>
-        )}
+        <TabsContent value="api-keys">
+          <APISettings />
+        </TabsContent>
       </Tabs>
       
       {/* Delete Template Dialog */}

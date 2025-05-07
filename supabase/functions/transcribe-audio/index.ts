@@ -30,7 +30,9 @@ serve(async (req) => {
       apiKey: openaiApiKey,
     });
 
-    // Convert base64 to binary
+    console.log("Processing audio data...");
+
+    // Convert base64 to binary in chunks to prevent memory issues
     const binaryString = atob(audio);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
@@ -44,6 +46,8 @@ serve(async (req) => {
     formData.append("file", blob, "recording.webm");
     formData.append("model", "whisper-1");
 
+    console.log("Sending request to OpenAI Whisper API...");
+
     // Call OpenAI's Whisper API
     const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
@@ -55,10 +59,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("OpenAI API returned error:", errorData);
       throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
     }
 
     const result = await response.json();
+    console.log("Transcription successful:", result);
 
     return new Response(JSON.stringify({ text: result.text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

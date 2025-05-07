@@ -64,6 +64,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
+  isSuperAdmin?: boolean;
   preferences: UserPreferences;
 }
 
@@ -112,6 +113,15 @@ export interface AICoachSession {
 }
 
 export interface AICoachInteraction {
+  id: string;
+  sessionId: string;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  tokensUsed: number | null;
+  createdAt: Date;
+}
+
+export interface AICoachMessage {
   id: string;
   sessionId: string;
   role: 'system' | 'user' | 'assistant';

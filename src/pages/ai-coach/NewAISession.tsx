@@ -68,8 +68,8 @@ export default function NewAISession() {
         description: 'Your coaching session has been created',
       });
       
-      // In a real app, navigate to the session page
-      navigate('/ai-coach');
+      // Navigate to the chat session page
+      navigate(`/ai-coach/chat/${newSession.id}`);
     } catch (error) {
       console.error('Error creating session:', error);
       toast({

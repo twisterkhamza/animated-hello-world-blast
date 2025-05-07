@@ -44,6 +44,79 @@ export type Database = {
           },
         ]
       }
+      ai_coach_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          tokens_used: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          tokens_used?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_coach_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_coach_prompts: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          life_area_id: string
+          system_prompt: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          life_area_id: string
+          system_prompt: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          life_area_id?: string
+          system_prompt?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_prompts_life_area_id_fkey"
+            columns: ["life_area_id"]
+            isOneToOne: false
+            referencedRelation: "life_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_coach_sessions: {
         Row: {
           created_at: string
@@ -220,6 +293,7 @@ export type Database = {
           created_at: string
           first_name: string | null
           id: string
+          is_super_admin: boolean | null
           last_name: string | null
           updated_at: string
         }
@@ -228,6 +302,7 @@ export type Database = {
           created_at?: string
           first_name?: string | null
           id: string
+          is_super_admin?: boolean | null
           last_name?: string | null
           updated_at?: string
         }
@@ -236,6 +311,7 @@ export type Database = {
           created_at?: string
           first_name?: string | null
           id?: string
+          is_super_admin?: boolean | null
           last_name?: string | null
           updated_at?: string
         }

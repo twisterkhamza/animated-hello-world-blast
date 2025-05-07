@@ -1,1 +1,27 @@
+
 project_id = "qbqsrrsmixzwgjigfpxn"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[[functions]]
+name = "ai-chat"
+verify_jwt = true
+
+[[functions]]
+name = "transcribe-audio"
+verify_jwt = true
+
+[[functions]]
+name = "test-openai-key"
+verify_jwt = true

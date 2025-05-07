@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useJournal } from '@/contexts/JournalContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +12,10 @@ import { ProfileForm } from '@/components/settings/ProfileForm';
 import { PreferencesForm } from '@/components/settings/PreferencesForm';
 import { TemplateForm } from '@/components/settings/TemplateForm';
 import { CategoryForm } from '@/components/settings/CategoryForm';
+import { AICoachSettings } from '@/components/settings/AICoachSettings';
+import { APISettings } from '@/components/settings/APISettings';
 import { Template, Category } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
   const { state, deleteTemplate, deleteCategory } = useJournal();
@@ -29,6 +32,9 @@ const Settings = () => {
   const [templateToEdit, setTemplateToEdit] = useState<Template | null>(null);
   const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
   
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isLoadingAdminStatus, setIsLoadingAdminStatus] = useState(true);
+  
   // Morning and evening templates
   const morningTemplates = state.templates.filter(t => t.type === 'sod');
   const eveningTemplates = state.templates.filter(t => t.type === 'eod');
@@ -36,6 +42,42 @@ const Settings = () => {
   // Morning and evening categories
   const morningCategories = state.categories.filter(c => c.type === 'sod');
   const eveningCategories = state.categories.filter(c => c.type === 'eod');
+  
+  // Check if user is super admin
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      try {
+        // Get the user's session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !sessionData.session) {
+          setIsSuperAdmin(false);
+          return;
+        }
+        
+        // Get the user's profile to check super admin status
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_super_admin')
+          .eq('id', sessionData.session.user.id)
+          .single();
+        
+        if (profileError) {
+          setIsSuperAdmin(false);
+          return;
+        }
+        
+        setIsSuperAdmin(profileData.is_super_admin || false);
+      } catch (error) {
+        console.error('Error checking super admin status:', error);
+        setIsSuperAdmin(false);
+      } finally {
+        setIsLoadingAdminStatus(false);
+      }
+    };
+    
+    checkSuperAdmin();
+  }, []);
   
   // Handle template deletion
   const handleDeleteTemplate = (id: string) => {
@@ -78,10 +120,12 @@ const Settings = () => {
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
       
       <Tabs defaultValue="templates" className="mb-6">
-        <TabsList className="grid grid-cols-3 mb-8">
+        <TabsList className={`grid ${isSuperAdmin ? 'grid-cols-5' : 'grid-cols-3'} mb-8`}>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="profile">Profile & Preferences</TabsTrigger>
+          {isSuperAdmin && <TabsTrigger value="ai-coach">AI Coach</TabsTrigger>}
+          {isSuperAdmin && <TabsTrigger value="api-keys">API Keys</TabsTrigger>}
         </TabsList>
         
         <TabsContent value="templates">
@@ -276,6 +320,18 @@ const Settings = () => {
             <PreferencesForm />
           </div>
         </TabsContent>
+        
+        {isSuperAdmin && (
+          <TabsContent value="ai-coach">
+            <AICoachSettings />
+          </TabsContent>
+        )}
+        
+        {isSuperAdmin && (
+          <TabsContent value="api-keys">
+            <APISettings />
+          </TabsContent>
+        )}
       </Tabs>
       
       {/* Delete Template Dialog */}

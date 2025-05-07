@@ -25,6 +25,7 @@ import AuthCallback from "@/pages/AuthCallback";
 import AICoach from "@/pages/ai-coach/AICoach";
 import NewAISession from "@/pages/ai-coach/NewAISession";
 import LifeAreas from "@/pages/ai-coach/LifeAreas";
+import ChatSession from "@/pages/ai-coach/ChatSession";
 
 // Auth Guard component
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -62,6 +63,7 @@ const App = () => (
                   <Route path="/ai-coach" element={<AICoach />} />
                   <Route path="/ai-coach/new" element={<NewAISession />} />
                   <Route path="/ai-coach/areas" element={<LifeAreas />} />
+                  <Route path="/ai-coach/chat/:id" element={<ChatSession />} />
                 </Route>
               </Route>
               
